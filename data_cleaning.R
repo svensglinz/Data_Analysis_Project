@@ -67,7 +67,7 @@ states <- states |>
   select(c("US STATE", "POSTAL ABBREVIATION")) |>
   rename(STATE = "US STATE", ABBREVIATION = "POSTAL ABBREVIATION")
 
-#retreive node where table with territories is stored and convert to data frame
+#retrieve node where table with territories is stored and convert to data frame
 territories <- getNodeSet(states_page, "//table[@class = 'has-fixed-layout table table-hover']")
 territories <- readHTMLTable(territories[[1]])
 
@@ -79,7 +79,7 @@ territories <- territories |>
 states_df <- bind_rows(states, territories)
 
 #write files as CSV for further usage
-write.csv(states_df, "files/us_states.csv", row.names = F)
+write_csv(states_df, "files/us_states.csv")
 
 
 #get data on political ideology for each US State
@@ -90,11 +90,17 @@ pol_ideology_page <- readLines(pol_ideology_link, encoding = "UFT-8", warn = F) 
 pol_ideology <- getNodeSet(pol_ideology_page, "//table[@class ='ui	celled table']")
 pol_ideology <- readHTMLTable(pol_ideology[[1]])
 pol_ideology[,2:5] <- data.frame(sapply(pol_ideology[,2:5], function(x) gsub("%", replacement = "", x)))
-pol_ideology[,2:5] <- data.frame(sapply(pol_ideology[,2:5], function(x) as.numeric(x)))
+pol_ideology[,2:5] <- data.frame(sapply(pol_ideology[,2:5], function(x) as.numeric(x)/100))
+
 pol_ideology <- pol_ideology |> 
   select(State, Conservative, Moderate, Liberal)
 
+pol_ideology <- pol_ideology |> 
+  left_join(states_df, by = c("State" = "STATE")) |> 
+  rename(Abbreviation = ABBREVIATION) |> 
+  relocate(State, Abbreviation)
 
+write_csv(pol_ideology, "files/pol_ideology.csv")
 #clean donation data
 #---------------------------------------------------------------------------
 
@@ -112,7 +118,7 @@ for (i in donation_files){
   
   #filter out only donations which were made to Biden and Trump Fundraising Committee
   biden_trump <-temp |> 
-    filter(X16 %in% c("C00703975", "C00580100") & ENTITY_TP == "IND")
+    filter(X16 %in% c("C00703975", "C00580100") & X7 == "IND")
   donations <- bind_rows(donations, biden_trump)
   
 }
@@ -121,6 +127,8 @@ for (i in donation_files){
 col_names_donations <- read_csv("files/donations/header_file.csv", col_names = F)
 colnames(donations) <- col_names_donations[1,]
 
+write_csv(donations, "files/donations_uncleaned.csv")
+
 #Extract first and last names from NAME column 
 names <- donations$NAME
 
@@ -128,20 +136,14 @@ names <- donations$NAME
 names <- gsub(pattern = "^\\s+", replacement = "", names)
 
 #take all until the first comma or white-space (only first part of double name is taken since our file only contains one name names)
-last_name <- str_extract(names, pattern = "[^,|\\s]+")
+last_name <- str_extract(names, pattern = "[^,]+")
 last_name <- gsub(pattern = "[[:punct:]]", replacement = "", last_name)
 
 first_name <-  str_split(names, pattern = ",", simplify = T)[,2]
 
-#split by space and select longer name 
-first_name <- sapply(str_split(first_name, " "), function(x) x[which.max(nchar(x))])
-#split by . and select longer name 
-first_name <- sapply(str_split(first_name, "\\."), function(x) x[which.max(nchar(x))])
-#remove possible whitespace
-first_name <- gsub(pattern = "\\s", replacement = "", first_name)
+#split by space and period and select longer name 
+first_name <- sapply(str_split(first_name, "[^[:alpha:]]"), function(x) x[which.max(nchar(x))])
 
-
-###consolidated vs not consolidated...
 donations$LAST_NAME <- last_name
 donations$FIRST_NAME <- first_name
 donations$CANDIDATE <- ifelse(donations$OTHER_ID == "C00703975", "BIDEN", "TRUMP")
@@ -156,10 +158,5 @@ donations <- donations |>  relocate(FIRST_NAME, LAST_NAME, GENDER)
 donations <- donations |>  mutate(TRANSACTION_DT = as.Date(TRANSACTION_DT, format = "%m%d%Y"))
 donations <- donations |> mutate(STATE = ifelse(STATE %in% states_df$ABBREVIATION, STATE, NA))
 
-trump_cleaned <- donations |>  filter(CANDIDATE == "TRUMP")
-biden_cleaned <- donations |>  filter(CANDIDATE == "BIDEN")
-
 #store data frames for further analysis!
-write.csv(donations, "files/donations_cleaned.csv", row.names = F)
-write.csv(biden_cleaned, "files/biden_cleaned.csv", row.names = F)
-write.csv(trump_cleaned, "files/trump_cleaned.csv", row.names = F)
+write_csv(donations, "files/donations_cleaned.csv")
