@@ -32,7 +32,7 @@ Data which was used in this code and which should be part of the folder "files" 
 <br>
 
 <p float="left", align = "center">
-  <img src="plots/rel_share_donations.png" width="400" />
-    &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp; 
-  <img src="plots/evolution_female_donations.png" width="500", height = "400"/> 
+  <img src="plots/rel_share_donations.png" width="300", height = "350" />
+    &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; 
+  <img src="plots/evolution_female_donations.png" width="350", height = "350"/> 
 </p>
