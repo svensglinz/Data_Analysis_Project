@@ -199,7 +199,7 @@ evolution_female_donations <- by_month |>
   labs(caption = "November only until Election Day (3. Nov)")
   
 #save plot 
-ggsave(filename = "plots/evolution_female_donations.png",
+ggsave(filename = "plots/evolution_female_donation.png",
        plot = evolution_female_donations, device = "png")
 
 
