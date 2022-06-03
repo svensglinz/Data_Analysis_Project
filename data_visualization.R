@@ -175,7 +175,7 @@ evolution_female_donations <- by_month |>
                          name="Total Donations in $Mio.",
                          labels = unit_format(unit = "M", scale = 1e-6)))+
     labs(color = "", fill = "", 
-       title = "Evolution of Relative Female Donations")+
+       title = "Monthly Relative Share of Female Donations")+
   theme_economist()+
   theme(axis.title.y.left = element_text(vjust = 4),  
         legend.position = "bottom",
