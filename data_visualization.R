@@ -23,8 +23,8 @@ us_states <- read_csv("files/us_states.csv")
 #Create Data Frames which are needed for creating plots
 #############################################################
 
-#data frame which shows the donations grouped to the individual person (multiple donations 
-#by the same person are summed up)
+#data frame which shows the donations grouped to the individual person
+#(multiple donations by the same person are summed up)
 #-----------------------------------------------------------
 donations_grouped <- donations |> 
   group_by(FIRST_NAME, LAST_NAME, GENDER, CITY, STATE,
@@ -36,14 +36,17 @@ donations_grouped <- donations |>
 summary_table <- donations_grouped |>
   group_by(GENDER, CANDIDATE) |>
   summarize("average donation" = mean(DONATION_AMT),
-            "total_donation (MIO)" = sum(DONATION_AMT)/10^6,
-            "total_donors (T)" = n()/10^3)
+            "total donations (MIO)" = sum(DONATION_AMT)/10^6,
+            "total donors (T)" = n()/10^3) |> 
+  rename(Gender = GENDER, Candidate = CANDIDATE)
+
+summary_table$Gender[is.na(summary_table$Gender)] <- "NA"
 
 summary_table[3:5] <- data.frame(sapply(summary_table[3:5], function(x) round(x, 0)))
-stargazer(summary_table, out = "plots/summary_table.html", summary = FALSE)
+stargazer(summary_table, out = "plots/summary_table.html", summary = FALSE, rownames = FALSE)
 
 
-#data frame which shows the % of Male and Female per US State
+#data frame which shows the % distribution of Male and Female per US State
 #-----------------------------------------------------------
 gender_state <- gender_dist |> 
   pivot_longer(c(2:3), names_to = "GENDER", values_to= "RATIO") |> 
@@ -54,20 +57,23 @@ gender_state <- gender_dist |>
   rename(LOCATION = Location) |> 
   drop_na() 
 
-#data frame which shows the total contributions to each candidate per gender (donations and number of people who donated)
+#data frame which shows the total contributions to each candidate per
+#gender (donations and number of people who donated)
 #-----------------------------------------------------------
 by_gender <- donations_grouped |> 
   group_by(GENDER, CANDIDATE) |> 
   summarize(DONATION = sum(DONATION = DONATION_AMT), COUNT = n()) |> 
   pivot_longer(c(DONATION, COUNT), names_to = "VARIABLE", values_to = "VALUE")
 
-#data frame which shows the total contributions to each candidate (donations and number of people who donated)
+#data frame which shows the total contributions to each candidate
+#(donations and number of people who donated)
 #-----------------------------------------------------------
 by_variable <- by_gender |> 
   group_by(CANDIDATE, VARIABLE) |> 
   summarize(SUM = sum(VALUE))
 
-#data frame which shows the relative contributions per gender per candidate (donations and number of people who donated)
+#data frame which shows the relative contributions per gender
+#per candidate (donations and number of people who donated)
 #-----------------------------------------------------------
 by_gender_rel <- by_gender |>
   left_join(by_variable, by = c("CANDIDATE", "VARIABLE")) |> 
@@ -90,30 +96,37 @@ by_variable_state <- by_gender_state |>
   group_by(CANDIDATE, STATE, VARIABLE) |> 
   summarize(SUM = sum(VALUE))
 
-#data frame with donations (count and value) per gender per candidate per state incl. relative values per gender
+#data frame with donations (count and value) per gender per candidate
+#per state incl. relative values per gender
 #-----------------------------------------------------------
 by_gender_state_rel <- by_gender_state |> 
   left_join(by_variable_state, by = c("VARIABLE", "CANDIDATE", "STATE")) |> 
   mutate(REL_GENDER = VALUE/SUM)
 
 #plot which adds the relative occurrence of male/female in each us state
+#as well as information on the political ideology
 #-----------------------------------------------------------
 by_gender_state_rel_pol <- by_gender_state_rel |>
   left_join(pol_ideology[2:5], by = c("STATE" = "Abbreviation")) |> 
-  left_join(gender_state, by = c("STATE" = "ABBREVIATION", "GENDER" = "GENDER"))
+  left_join(gender_state[2:4], by = c("STATE" = "ABBREVIATION", "GENDER" = "GENDER"))
+
 
 #data frame which shows the donations and relative amounts grouped by month of each year
+#and candidate as well as gender (only donations up and until election date are considered!)
+#this is because trump received a lot of donations after election day for his recount
+#which should not be included in our graphs!
 #-----------------------------------------------------------
-by_month <- donations %>% 
-  group_by(CANDIDATE, as.yearmon(TRANSACTION_DT, format = "%Y-%m-%d"), GENDER) %>% 
+by_month <- donations |> 
+  filter(TRANSACTION_DT < as.Date("2020-11-03", "%Y-%m-%d")) |> 
+  group_by(CANDIDATE, as.yearmon(TRANSACTION_DT, format = "%Y-%m-%d"), GENDER) |>  
   summarize(DONATION = sum(TRANSACTION_AMT), COUNT = n())
 colnames(by_month)[2] <- "MONTH"
 
-by_month <- by_month %>%
-  pivot_longer(c(DONATION,COUNT), names_to = "VARIABLE", values_to = "VALUE")
+by_month <- by_month |>
+  pivot_longer(c(DONATION, COUNT), names_to = "VARIABLE", values_to = "VALUE")
 
-by_month <- by_month %>% pivot_wider(values_from = VALUE, names_from = GENDER)
-by_month <- by_month %>% mutate(REL_F = F/(F+M))
+by_month <- by_month |> pivot_wider(values_from = VALUE, names_from = GENDER)
+by_month <- by_month |> mutate(REL_F = F/(F+M + `NA`))
 
 
 ################################################################
@@ -147,7 +160,7 @@ ggsave(filename = "plots/rel_share_donations.png", plot = rel_share_plot, device
 
 #plot which shows relative amount of female donations per month and aggregate monthly donation
 evolution_female_donations <- by_month |> 
-  filter(VARIABLE == "DONATION" & MONTH < "Nov 2020") |> 
+  filter(VARIABLE == "DONATION" & MONTH <= "Nov 2020" & MONTH >= "Jan 2020") |> 
   ggplot(aes(x = as.Date(MONTH), y = REL_F , GROUP = CANDIDATE,
              color = CANDIDATE, fill = CANDIDATE))+
   geom_line(size = 0.8)+
@@ -156,6 +169,7 @@ evolution_female_donations <- by_month |>
     # Features of the first axis
     name = "Share of Female Donations (value)",
     labels = percent,
+    
     # Add a second axis and specify its features
     sec.axis = sec_axis( trans=~.*10^2.6*10^6,
                          name="Total Donations in $Mio.",
@@ -171,7 +185,18 @@ evolution_female_donations <- by_month |>
                                   margin=margin(0,0,15,0), hjust = 0.5),
         axis.title.y.right =  element_text(angle = 270, vjust = 4),
         axis.title.x = element_blank())+
-  scale_x_date(breaks = "4 month", date_labels = "%b- %y")
+  scale_x_date(breaks = "2 month", date_labels = "%b- %y")+
+  annotate(
+    geom = "curve", x = as.Date("2020-05-10", "%Y-%m-%d"),
+    y = 0.25, xend = as.Date("2020-08-01", "%Y-%m-%d"), yend = 0.3, 
+    curvature = .3, arrow = arrow(length = unit(2, "mm")))+
+  annotate(geom = "text", x = as.Date("2020-05-10", "%Y-%m-%d"),
+           y = 0.25, label = "Kamala Harris as VP", hjust = "right")+
+  annotate("rect", fill = "grey", alpha = 0.5,
+          xmin = as.Date("2020-07-15", "%Y-%m-%d"), 
+          xmax = as.Date("2020-08-15", "%Y-%m-%d"),
+          ymin = 0, ymax = Inf)+
+  labs(caption = "November only until Election Day (3. Nov)")
   
 #save plot 
 ggsave(filename = "plots/evolution_female_donations.png",
@@ -180,19 +205,22 @@ ggsave(filename = "plots/evolution_female_donations.png",
 
 ################################################################
 #Regression: 
-#model which analyzes influence of conservativeness on relative donations of women!
+#model which analyzes influence of conservativeness on relative donations of women
 ################################################################
 
-#take only female and count valriable 
+#take only female and count variable 
 temp_count <- by_gender_state_rel_pol |> 
   filter(GENDER == "F" & VARIABLE == "COUNT") |>  drop_na()
 
+#take only female and donations variable 
 temp_donation <- by_gender_state_rel_pol |> 
   filter(GENDER == "F" & VARIABLE == "DONATION") |>  drop_na()
 
+#run two regression specifications (once rel-share by donation, once by number of donors)
 reg_0_0 <-  lm(REL_GENDER ~ RATIO + CANDIDATE, data = temp_count)
 reg_0_1 <-  lm(REL_GENDER ~ RATIO + CANDIDATE, data = temp_donation)
-#regression specifications
+
+#Include conservativeness in regression specification
 reg_1_0 <- lm(REL_GENDER ~ RATIO + CANDIDATE + Conservative, data = temp_count)
 reg_1_1 <- lm(REL_GENDER ~ RATIO + CANDIDATE + Conservative, data = temp_donation)
 
@@ -204,18 +232,21 @@ stargazer(reg_0_0, reg_1_0, reg_0_1, reg_1_1, out = "plots/regression.html",
           dep.var.labels = c("FEMALE RATIO"))
 
 ################################################################
-#Regression: 
-#model which analyzes influence of conservativeness on relative donations of women!
+#plot US Map which shows the relative share of donations 
+#by women in each state
 ################################################################
 
+#plot result for republicans (donations to Trump) 
+#prepare data frame for plot_usmap function
 data_republicans <- by_gender_state_rel |>
   filter(CANDIDATE == "TRUMP" & VARIABLE == "DONATION" & GENDER == "F")
+
 data_republicans <- data_republicans |>
   select(STATE, REL_GENDER) |>
   rename(values = REL_GENDER, state = STATE)
 
-plot_republicans <- plot_usmap(regions = c("states"), data = data_republicans)+
-  scale_fill_continuous(high = "blue", low = "white",
+plot_republicans <- plot_usmap(regions = c("states"),data = data_republicans)+
+  scale_fill_continuous(high = "darkblue", low = "white",
                         name = "% donations by Female",
                         limits = c(0.25, 0.4), oob=squish,
                         guide = guide_colorbar(barwidth = 1, barheight =5,
@@ -231,15 +262,16 @@ plot_republicans <- plot_usmap(regions = c("states"), data = data_republicans)+
          axis.title = element_blank(),
          legend.position = "right",
          legend.key.size = unit(1, "cm"),
-         plot.title = element_text(margin=margin(0,0,15,0), size = 15, hjust = -1))+
+         plot.title = element_text(margin=margin(0,0,15,0),
+                                   size = 15, hjust = -1))+
   scale_x_discrete(labels = NULL, breaks = NULL)+
   scale_y_discrete(labels = NULL, breaks = NULL)
 
 ggsave(plot_republicans, device = "png", filename = "plots/plot_republicans.png", width = 5)
 
-#calculate M / F Rations without taking into account NA -> such that they add up to 100%!
 
-#plot result for democrats 
+#plot result for democrats (donations to biden)
+#prepare data frame for plot_usmap function
 data_democrats <- by_gender_state_rel |>
   filter(CANDIDATE == "BIDEN" & VARIABLE == "DONATION" & GENDER == "F")
 
@@ -248,7 +280,7 @@ data_democrats <- data_democrats |>
   rename(values = REL_GENDER, state = STATE)
 
 plot_democrats <- plot_usmap(regions = c("states"), data = data_democrats)+
-  scale_fill_continuous(high = "blue", low = "white",
+  scale_fill_continuous(high = "darkblue", low = "white",
                         name = "% donations by Female",
                          oob=squish,
                         guide = guide_colorbar(barwidth = 1, barheight =5,
@@ -272,8 +304,8 @@ plot_democrats <- plot_usmap(regions = c("states"), data = data_democrats)+
 ggsave(plot_democrats, device = "png", filename = "plots/plot_democrats.png", width = 5)
 
 ################################################################
-#Regression: 
-#model which analyzes influence of conservativeness on relative donations of women!
+#plot relationship between % female donors (adjusted for % female inhabitants per state)
+#and conservativeness for both candidates
 ################################################################
 
 inhabitants_vs_female <- ggplot(by_gender_state_rel_pol |> 
@@ -295,10 +327,11 @@ inhabitants_vs_female <- ggplot(by_gender_state_rel_pol |>
         legend.position = "right")
 
 
-ggsave(filename = "plots/inhabitants_vs_female.png", plot = inhabitants_vs_female, device = "png", width = 6)
+ggsave(filename = "plots/inhabitants_vs_female.png",
+       plot = inhabitants_vs_female, device = "png", width = 6)
 
 ###############################################################################
-#Top Job of Donors by Candidate and Gender
+#Plot top 1 Profession per Candidate and Gender (unemployed / Retired for both!)
 ###############################################################################
 
 by_profession <- donations_grouped |>
@@ -343,19 +376,22 @@ ggsave(filename = "plots/topjob.png", plot = topjob, device = "png")
 
 ###############################################################################
 #Cumulative evolution of donations per Gender per Candidate over Time
+#(only takes into account donations until election day)
 ###############################################################################
 
 donations_trump <- donations |> 
-  filter(TRANSACTION_DT < as.Date("2020-11-03", "%Y-%m-%d")) |> 
+  filter(TRANSACTION_DT < as.Date("2020-11-03", "%Y-%m-%d") & TRANSACTION_DT > as.Date("2019-12-31", "%Y-%m-%d")) |> 
   filter(CANDIDATE == "TRUMP") |> 
   group_by(GENDER, TRANSACTION_DT) |> 
-  summarize(donations = sum(TRANSACTION_AMT))
+  summarize(donations = sum(TRANSACTION_AMT))|> 
+  drop_na()
 
 donations_biden <- donations |> 
-  filter(TRANSACTION_DT < as.Date("2020-11-03", "%Y-%m-%d")) |> 
+  filter(TRANSACTION_DT < as.Date("2020-11-03", "%Y-%m-%d") & TRANSACTION_DT > as.Date("2019-12-31", "%Y-%m-%d")) |> 
   filter(CANDIDATE == "BIDEN") |> 
   group_by(GENDER, TRANSACTION_DT) |> 
-  summarize(donations = sum(TRANSACTION_AMT))
+  summarize(donations = sum(TRANSACTION_AMT)) |> 
+  drop_na()
 
 cumdonations_biden <- donations_biden |> arrange((TRANSACTION_DT)) |> 
   group_by(GENDER) |> 
@@ -371,9 +407,12 @@ cumdonations_trump <- donations_trump |> arrange((TRANSACTION_DT)) |>
 
 donations_trump <- cbind(donations_trump, cumdonations_trump["cumdonations"])
 
+
 cum_donations <- ggplot()+
-  geom_line(data = donations_biden, aes(x = TRANSACTION_DT, y = cumdonations, color = GENDER, linetype = "Trump"), size =0.8)+
-  geom_line(data = donations_trump, aes(x = TRANSACTION_DT, y = cumdonations, color = GENDER, linetype = "Biden"), size = 0.8)+
+  geom_line(data = donations_biden, aes(x = TRANSACTION_DT,
+                                        y = cumdonations, color = GENDER, linetype = "Biden"), size =0.8)+
+  geom_line(data = donations_trump, aes(x = TRANSACTION_DT,
+                                        y = cumdonations, color = GENDER, linetype = "Trump"), size = 0.8)+
   labs(linetype = "", color = "", 
        x = "Date", 
        y = "Cumulative Donations", 
@@ -385,14 +424,17 @@ cum_donations <- ggplot()+
            xmax = as.Date("2020-08-14", "%Y-%m-%d"),
            ymin = -Inf, ymax = Inf)+
   annotate(
-    geom = "curve", x = as.Date("2020-05-10", "%Y-%m-%d"), y = 170*10^6, xend = as.Date("2020-08-10", "%Y-%m-%d"), yend = 150*10^6, 
+    geom = "curve", x = as.Date("2020-05-10", "%Y-%m-%d"), y = 170*10^6,
+    xend = as.Date("2020-08-10", "%Y-%m-%d"), yend = 150*10^6, 
     curvature = .3, arrow = arrow(length = unit(2, "mm"))
   )+
-  annotate(geom = "text", x = as.Date("2020-05-10", "%Y-%m-%d"), y = 170*10^6, label = "Kamala Harris as VP", hjust = "right")+
+  annotate(geom = "text", x = as.Date("2020-05-10", "%Y-%m-%d"),
+           y = 170*10^6, label = "Kamala Harris as VP", hjust = "right")+
   theme_economist()+
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5),
         legend.position = "bottom",
-        plot.title = element_text(family = "sans", size = 16, margin=margin(0,0,15,0), hjust = 0.0),
+        plot.title = element_text(family = "sans", size = 16,
+                                  margin=margin(0,0,15,0), hjust = 0.0),
         axis.title.x = element_blank(),
         axis.title.y = element_text(vjust = 3),
         legend.text = element_text(size = 10))

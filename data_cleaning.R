@@ -1,6 +1,7 @@
+#############################################################
+#Load relevant Libraries
+#############################################################
 
-#Load needed libraries 
-#---------------------------------------------------------------------------
 library(tidyverse)
 library(XML)
 
@@ -10,13 +11,15 @@ library(XML)
 
 #get file names 
 names_path <- list.files("files/names")
-years <- as.character(c(1940:2022))
 
+#only get names for years 1940 - 2022
+years <- as.character(c(1940:2022))
 relevant_years <- str_extract_all(names_path, pattern = "[0-9]+") %in% years
 names_path_filtered <- names_path[relevant_years]
 
 names_df <- data.frame()
 
+#loop over files and paste together
 for (i in names_path_filtered){
   
   temp <- read_delim(paste0("files/names/", i), col_names = F)
@@ -27,7 +30,7 @@ for (i in names_path_filtered){
 #change column names
 colnames(names_df) <- c("NAME", "GENDER", "COUNT")
 
-#summarize by name and gender and count number of occurences
+#summarize by name and gender and count number of occurrences
 names_df <- names_df |> 
   group_by(NAME, GENDER) |>
   summarize(COUNT = sum(COUNT)) |> 
@@ -52,14 +55,17 @@ names_df$GENDER[names_df$prob_M <= 0.25] <- "F"
 names_df$NAME <- toupper(names_df$NAME)
 
 
+#############################################################
 #get names and abbreviations of all US States including territories (eg. DC!) 
-#---------------------------------------------------------------------------
+#as well as table with political ideology per state
+#############################################################
+
 
 #import HTML from website
 states_link <- "http://www.50states.com/abbreviations.htm"
 states_page <- readLines(states_link, encoding = "UFT-8", warn = F) |> htmlParse() 
 
-#retreive node where table with states is stored and convert to data frame
+#retrieve node where table with states is stored and convert to data frame
 states <- getNodeSet(states_page, "//table[@class =' table table-hover']")
 states <- readHTMLTable(states[[1]])
 
@@ -75,18 +81,18 @@ territories <- territories |>
   select(c("Territory/Commonwealth", "Postal Abbreviation")) |>
   rename(STATE = "Territory/Commonwealth", ABBREVIATION = "Postal Abbreviation")
 
-#combine do single Data Frame
+#combine to single Data Frame
 states_df <- bind_rows(states, territories)
 
 #write files as CSV for further usage
 write_csv(states_df, "files/us_states.csv")
 
 
-#get data on political ideology for each US State
-#---------------------------------------------------------------------------
+#import HTML from website
 pol_ideology_link <- "https://www.pewresearch.org/religion/religious-landscape-study/compare/political-ideology/by/state/"
 pol_ideology_page <- readLines(pol_ideology_link, encoding = "UFT-8", warn = F) |> htmlParse() 
 
+#retrieve node where table with ideology is stored and clean data formats
 pol_ideology <- getNodeSet(pol_ideology_page, "//table[@class ='ui	celled table']")
 pol_ideology <- readHTMLTable(pol_ideology[[1]])
 pol_ideology[,2:5] <- data.frame(sapply(pol_ideology[,2:5], function(x) gsub("%", replacement = "", x)))
@@ -100,9 +106,13 @@ pol_ideology <- pol_ideology |>
   rename(Abbreviation = ABBREVIATION) |> 
   relocate(State, Abbreviation)
 
+#write files as CSV for further usage
 write_csv(pol_ideology, "files/pol_ideology.csv")
-#clean donation data
-#---------------------------------------------------------------------------
+
+
+#############################################################
+#clean donation data 
+#############################################################
 
 #get paths for all donation files
 donations <- data.frame()
@@ -123,10 +133,11 @@ for (i in donation_files){
   
 }
 
-#import file provided by the FEC which contains the column names (were not provided in the donation files)
+#import file provided by the FEC which contains the column names
 col_names_donations <- read_csv("files/donations/header_file.csv", col_names = F)
 colnames(donations) <- col_names_donations[1,]
 
+#write uncleaned data set with donations to only biden and trump for further reference
 write_csv(donations, "files/donations_uncleaned.csv")
 
 #Extract first and last names from NAME column 
@@ -135,19 +146,22 @@ names <- donations$NAME
 #remove white-space at the beginning 
 names <- gsub(pattern = "^\\s+", replacement = "", names)
 
-#take all until the first comma or white-space (only first part of double name is taken since our file only contains one name names)
+#take all until the first comma and determine to be last name / clean by removing all punctuation
 last_name <- str_extract(names, pattern = "[^,]+")
 last_name <- gsub(pattern = "[[:punct:]]", replacement = "", last_name)
 
+#first name = all characters after first comma
 first_name <-  str_split(names, pattern = ",", simplify = T)[,2]
 
-#split by space and period and select longer name 
+#split by non alpanum- characters and select longest string as first name 
 first_name <- sapply(str_split(first_name, "[^[:alpha:]]"), function(x) x[which.max(nchar(x))])
 
+#paste name to new donation data frame columns
 donations$LAST_NAME <- last_name
 donations$FIRST_NAME <- first_name
 donations$CANDIDATE <- ifelse(donations$OTHER_ID == "C00703975", "BIDEN", "TRUMP")
 
+#selct only relevant columns, filter out non-valid states, format date & join gender information
 donations <- donations |> 
   select(c(FIRST_NAME, LAST_NAME, TRANSACTION_AMT, CITY, STATE, ZIP_CODE, EMPLOYER, OCCUPATION, TRANSACTION_DT, CANDIDATE))
 
@@ -158,5 +172,5 @@ donations <- donations |>  relocate(FIRST_NAME, LAST_NAME, GENDER)
 donations <- donations |>  mutate(TRANSACTION_DT = as.Date(TRANSACTION_DT, format = "%m%d%Y"))
 donations <- donations |> mutate(STATE = ifelse(STATE %in% states_df$ABBREVIATION, STATE, NA))
 
-#store data frames for further analysis!
+#store data frames for further analysis
 write_csv(donations, "files/donations_cleaned.csv")
