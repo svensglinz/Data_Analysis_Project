@@ -27,7 +27,8 @@ us_states <- read_csv("files/us_states.csv")
 #by the same person are summed up)
 #-----------------------------------------------------------
 donations_grouped <- donations |> 
-  group_by(FIRST_NAME, LAST_NAME, GENDER, CITY, STATE, EMPLOYER, ZIP_CODE, OCCUPATION, CANDIDATE) |> 
+  group_by(FIRST_NAME, LAST_NAME, GENDER, CITY, STATE,
+           EMPLOYER, ZIP_CODE, OCCUPATION, CANDIDATE) |> 
   summarize(DONATION_AMT = sum(TRANSACTION_AMT)) |> 
   ungroup() 
 
@@ -132,7 +133,8 @@ rel_share_plot <- by_gender_rel |> filter(GENDER == "F") |>
   theme(axis.title.y = element_blank(),
         axis.title.x = element_blank(),
         legend.position = "bottom",
-      plot.title = element_text(family = "sans", size = 16, margin=margin(0,0,30,0), hjust = 0.5))+
+      plot.title = element_text(family = "sans", size = 16,
+                                margin=margin(0,0,30,0), hjust = 0.5))+
   scale_fill_discrete(labels = c("Number of Donors", "Value of Donations"))
 
 #save output
@@ -146,7 +148,8 @@ ggsave(filename = "plots/rel_share_donations.png", plot = rel_share_plot, device
 #plot which shows relative amount of female donations per month and aggregate monthly donation
 evolution_female_donations <- by_month |> 
   filter(VARIABLE == "DONATION" & MONTH < "Nov 2020") |> 
-  ggplot(aes(x = as.Date(MONTH), y = REL_F , GROUP = CANDIDATE, color = CANDIDATE, fill = CANDIDATE))+
+  ggplot(aes(x = as.Date(MONTH), y = REL_F , GROUP = CANDIDATE,
+             color = CANDIDATE, fill = CANDIDATE))+
   geom_line(size = 0.8)+
   geom_bar(aes(y = (F+M)/10^8.6), stat = "identity", position = position_dodge())+
   scale_y_continuous(
@@ -164,13 +167,15 @@ evolution_female_donations <- by_month |>
         legend.position = "bottom",
         legend.text = element_text(size=10),
         legend.key.size = unit(0.2, 'cm'),
-        plot.title = element_text(family = "sans", size = 16, margin=margin(0,0,15,0), hjust = 0.5),
+        plot.title = element_text(family = "sans", size = 16,
+                                  margin=margin(0,0,15,0), hjust = 0.5),
         axis.title.y.right =  element_text(angle = 270, vjust = 4),
         axis.title.x = element_blank())+
   scale_x_date(breaks = "4 month", date_labels = "%b- %y")
   
 #save plot 
-ggsave(filename = "plots/evolution_female_donations.png", plot = evolution_female_donations, device = "png")
+ggsave(filename = "plots/evolution_female_donations.png",
+       plot = evolution_female_donations, device = "png")
 
 
 ################################################################
@@ -192,8 +197,10 @@ reg_1_0 <- lm(REL_GENDER ~ RATIO + CANDIDATE + Conservative, data = temp_count)
 reg_1_1 <- lm(REL_GENDER ~ RATIO + CANDIDATE + Conservative, data = temp_donation)
 
 #store results as HTML table
-stargazer(reg_0_0, reg_1_0, reg_0_1, reg_1_1, out = "plots/regression.html", column.labels=c( "Number of Donors", "Donation Amount"),
-          column.separate = c(2,2), covariate.labels = c("Female Ratio Population", "Candidate: Trump"), 
+stargazer(reg_0_0, reg_1_0, reg_0_1, reg_1_1, out = "plots/regression.html",
+          column.labels=c( "Number of Donors", "Donation Amount"),
+          column.separate = c(2,2),
+          covariate.labels = c("Female Ratio Population", "Candidate: Trump"), 
           dep.var.labels = c("FEMALE RATIO"))
 
 ################################################################
@@ -201,56 +208,114 @@ stargazer(reg_0_0, reg_1_0, reg_0_1, reg_1_1, out = "plots/regression.html", col
 #model which analyzes influence of conservativeness on relative donations of women!
 ################################################################
 
-data_republicans <- by_gender_state_rel |> filter(CANDIDATE == "TRUMP" & VARIABLE == "COUNT" & GENDER == "M")
+data_republicans <- by_gender_state_rel |>
+  filter(CANDIDATE == "TRUMP" & VARIABLE == "DONATION" & GENDER == "F")
 data_republicans <- data_republicans |>
   select(STATE, REL_GENDER) |>
   rename(values = REL_GENDER, state = STATE)
 
-plot_usmap(regions = c("states"), data = data_republicans)+
-  scale_fill_continuous(low = "white", high = "blue", name = "% donations by men")+
-  labs(title = "TITLE", subtitle = "SUBTITLE")+
-  theme(legend.position = "right")
+plot_republicans <- plot_usmap(regions = c("states"), data = data_republicans)+
+  scale_fill_continuous(high = "blue", low = "white",
+                        name = "% donations by Female",
+                        limits = c(0.25, 0.4), oob=squish,
+                        guide = guide_colorbar(barwidth = 1, barheight =5,
+                                               label.theme = element_text(size = 10),
+                                               title = element_blank()))+
+  labs(title = "rel. Share of Female Donations to Trump")+
+  theme(legend.position = "right")+
+  theme_economist()+
+  theme( panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         panel.border = element_blank(),
+         axis.line= element_blank(),
+         axis.title = element_blank(),
+         legend.position = "right",
+         legend.key.size = unit(1, "cm"),
+         plot.title = element_text(margin=margin(0,0,15,0), size = 15, hjust = -1))+
+  scale_x_discrete(labels = NULL, breaks = NULL)+
+  scale_y_discrete(labels = NULL, breaks = NULL)
+
+ggsave(plot_republicans, device = "png", filename = "plots/plot_republicans.png", width = 5)
 
 #calculate M / F Rations without taking into account NA -> such that they add up to 100%!
 
 #plot result for democrats 
-data_democrats <- by_gender_state_rel |> filter(CANDIDATE == "BIDEN" & VARIABLE == "COUNT" & GENDER == "M")
+data_democrats <- by_gender_state_rel |>
+  filter(CANDIDATE == "BIDEN" & VARIABLE == "DONATION" & GENDER == "F")
+
 data_democrats <- data_democrats |>
   select(STATE, REL_GENDER) |>
   rename(values = REL_GENDER, state = STATE)
 
+plot_democrats <- plot_usmap(regions = c("states"), data = data_democrats)+
+  scale_fill_continuous(high = "blue", low = "white",
+                        name = "% donations by Female",
+                         oob=squish,
+                        guide = guide_colorbar(barwidth = 1, barheight =5,
+                                               label.theme = element_text(size = 10),
+                                               title = element_blank()))+
+  labs(title = "rel. Share of Female Donations to Biden")+
+  theme(legend.position = "right")+
+  theme_economist()+
+  theme( panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         panel.border = element_blank(),
+         axis.line= element_blank(),
+         axis.title = element_blank(),
+         legend.position = "right",
+         legend.key.size = unit(1, "cm"),
+         plot.title = element_text(margin=margin(0,0,15,0), size = 15, hjust = -1))+
+  scale_x_discrete(labels = NULL, breaks = NULL)+
+  scale_y_discrete(labels = NULL, breaks = NULL)
 
-plot_democrats <- plot_usmap(regions = "states", data = data_democrats)+
-  scale_fill_continuous(low = "white", high = "blue", name = "% donations by men")+
-  labs(title = "TITLE", subtitle = "SUBTITLE")+
-  theme(legend.position = "right")
 
-ggsave(plot_democrats, device = "png", filename = "sample.png")
+ggsave(plot_democrats, device = "png", filename = "plots/plot_democrats.png", width = 5)
 
+################################################################
+#Regression: 
+#model which analyzes influence of conservativeness on relative donations of women!
+################################################################
 
 inhabitants_vs_female <- ggplot(by_gender_state_rel_pol |> 
                                      filter(GENDER == "F", VARIABLE == "COUNT") |> drop_na(), 
                                    aes(x = Conservative, y = REL_GENDER/RATIO , color = CANDIDATE))+
-                              geom_point()+
+                              geom_point(size = 1)+
   scale_x_continuous(labels = scales::percent)+
-                              geom_smooth(method = "lm")+
+                              geom_smooth(method = "lm", size = 0.5)+
                               theme_economist()+
-  theme(legend.position="right",  legend.direction="vertical", )+
-  labs(y = "%female donors / % Female inhabitants", x = "%Conservative inhabitants", 
-      title = "%female donors per % inhabitants vs inhabitants who classify themselves as Conservative",
-      color = "")
+  labs(y = "%Female donors / % Female inhabitants",
+       x = "%Conservative inhabitants", 
+      title = "Pop. Adj. %Female Donors vs. Conservativeness",
+      color = "")+
+  theme(axis.text.x = element_text(vjust = 0.5),
+        plot.title = element_text(family = "sans", size = 16,
+                                  margin=margin(0,0,15,0)),
+        axis.title.y = element_text(vjust = 3),
+        legend.text = element_text(size = 10),
+        legend.position = "right")
 
 
-ggsave(filename = "plots/inhabitants_vs_female.png", plot = inhabitants_vs_female, device = "png", width = 7, height = 10)
+ggsave(filename = "plots/inhabitants_vs_female.png", plot = inhabitants_vs_female, device = "png", width = 6)
 
 ###############################################################################
 #Top Job of Donors by Candidate and Gender
 ###############################################################################
 
-by_profession <- donations_grouped |> group_by(OCCUPATION, GENDER, CANDIDATE) |> summarize(count = n()) |> arrange(by = desc(count)) |> ungroup()
+by_profession <- donations_grouped |>
+  group_by(OCCUPATION, GENDER, CANDIDATE) |>
+  summarize(count = n()) |>
+  arrange(by = desc(count)) |>
+  ungroup()
 
-by_profession_total <- by_profession |> group_by(GENDER, CANDIDATE) |> summarize(total = sum(count)) |> ungroup()
-by_profession <- by_profession |> left_join(by_profession_total, by = c("GENDER", "CANDIDATE")) |> drop_na()
+by_profession_total <- by_profession |>
+  group_by(GENDER, CANDIDATE) |>
+  summarize(total = sum(count)) |>
+  ungroup()
+
+by_profession <- by_profession |>
+  left_join(by_profession_total, by = c("GENDER", "CANDIDATE")) |>
+  drop_na()
+
 by_profession$rel_share_gender <- by_profession$count / by_profession$total 
 
 top_job <- by_profession |>
