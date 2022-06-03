@@ -1,0 +1,52 @@
+"State","Abbreviation","Conservative","Moderate","Liberal"
+"Alabama","AL",0.5,0.29,0.12
+"Alaska","AK",0.34,0.37,0.23
+"Arizona","AZ",0.39,0.31,0.23
+"Arkansas","AR",0.42,0.38,0.14
+"California","CA",0.31,0.34,0.29
+"Colorado","CO",0.33,0.34,0.28
+"Connecticut","CT",0.33,0.36,0.25
+"Delaware","DE",0.26,0.4,0.25
+"District of Columbia","DC",0.15,0.39,0.36
+"Florida","FL",0.37,0.31,0.24
+"Georgia","GA",0.42,0.32,0.2
+"Hawaii","HI",0.3,0.42,0.21
+"Idaho","ID",0.42,0.32,0.21
+"Illinois","IL",0.32,0.35,0.27
+"Indiana","IN",0.41,0.31,0.2
+"Iowa","IA",0.41,0.31,0.23
+"Kansas","KS",0.39,0.31,0.27
+"Kentucky","KY",0.42,0.29,0.23
+"Louisiana","LA",0.5,0.3,0.14
+"Maine","ME",0.34,0.33,0.3
+"Maryland","MD",0.26,0.36,0.29
+"Massachusetts","MA",0.23,0.35,0.36
+"Michigan","MI",0.35,0.33,0.24
+"Minnesota","MN",0.35,0.32,0.27
+"Mississippi","MS",0.45,0.3,0.19
+"Missouri","MO",0.39,0.32,0.21
+"Montana","MT",0.44,0.31,0.21
+"Nebraska","NE",0.41,0.29,0.21
+"Nevada","NV",0.33,0.37,0.24
+"New Hampshire","NH",0.34,0.34,0.28
+"New Jersey","NJ",0.29,0.37,0.28
+"New Mexico","NM",0.34,0.36,0.23
+"New York","NY",0.29,0.34,0.31
+"North Carolina","NC",0.4,0.32,0.23
+"North Dakota","ND",0.45,0.3,0.22
+"Ohio","OH",0.4,0.32,0.21
+"Oklahoma","OK",0.38,0.37,0.19
+"Oregon","OR",0.3,0.34,0.3
+"Pennsylvania","PA",0.36,0.34,0.23
+"Rhode Island","RI",0.26,0.35,0.3
+"South Carolina","SC",0.43,0.35,0.15
+"South Dakota","SD",0.47,0.32,0.15
+"Tennessee","TN",0.46,0.27,0.19
+"Texas","TX",0.39,0.32,0.21
+"Utah","UT",0.45,0.31,0.2
+"Vermont","VT",0.3,0.32,0.35
+"Virginia","VA",0.39,0.37,0.19
+"Washington","WA",0.3,0.33,0.3
+"West Virginia","WV",0.47,0.3,0.16
+"Wisconsin","WI",0.41,0.36,0.19
+"Wyoming","WY",0.41,0.33,0.17
