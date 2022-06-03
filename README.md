@@ -12,5 +12,27 @@ A regression analysis which aims to analyze the relative amount female donors an
 ## Data 
 
 Data which was used in this code and which should be part of the folder "files" but is too large to upload on github can be found under: 
+- a
+- b
+- c
+
 
 ## Output Examples
+
+<table style="text-align:center", align = "center"><tr><td colspan="5" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Gender</td><td>Candidate</td><td>average donation</td><td>total donations (MIO)</td><td>total donors (T)</td></tr>
+<tr><td colspan="5" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">F</td><td>BIDEN</td><td>451</td><td>179</td><td>397</td></tr>
+<tr><td style="text-align:left">F</td><td>TRUMP</td><td>313</td><td>106</td><td>340</td></tr>
+<tr><td style="text-align:left">M</td><td>BIDEN</td><td>587</td><td>222</td><td>377</td></tr>
+<tr><td style="text-align:left">M</td><td>TRUMP</td><td>385</td><td>184</td><td>477</td></tr>
+<tr><td style="text-align:left">NA</td><td>BIDEN</td><td>483</td><td>16</td><td>33</td></tr>
+<tr><td style="text-align:left">NA</td><td>TRUMP</td><td>400</td><td>15</td><td>38</td></tr>
+<tr><td colspan="5" style="border-bottom: 1px solid black"></td></tr></table>
+
+<br>
+<br>
+
+<p float="left", align = "center">
+  <img src="plots/rel_share_donations.png" width="400" />
+    &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp; 
+  <img src="plots/evolution_female_donations.png" width="500", height = "400"/> 
+</p>
