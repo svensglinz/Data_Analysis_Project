@@ -12,9 +12,9 @@ A regression analysis which aims to analyze the relative amount female donors an
 ## Data 
 
 Data which was used in this code and which should be part of the folder "files" but is too large to upload on github can be found under: 
-- a
-- b
-- c
+- files/donations_uncleaned: https://1drv.ms/u/s!AoQRAZtdS9u4iO0U5SfM1cjIEUXqJw?e=4FRLhl
+- files/donations_cleaned: https://1drv.ms/u/s!AoQRAZtdS9u4iOxrV4k47dMJ_3K1Cw?e=DyNgzg
+- files/donations (folder): https://1drv.ms/u/s!AoQRAZtdS9u4iOs7Naisf9bOOFRXIw?e=JD9a1C
 
 
 ## Output Examples
