@@ -42,10 +42,14 @@ summary_table <- donations_grouped |>
 
 summary_table$Gender[is.na(summary_table$Gender)] <- "NA"
 
+#get summary table which also shows data from those where gender could not 
+#be identified. NA is excluded in all further analysis!
 summary_table[3:5] <- data.frame(sapply(summary_table[3:5], function(x) round(x, 0)))
 stargazer(summary_table, out = "plots/summary_table.html", summary = FALSE, rownames = FALSE)
 
-
+#exclude gender NA 
+donations <- donations |> filter(!is.na(GENDER))
+donations_grouped <- donations_grouped |> filter(!is.na(GENDER))
 #data frame which shows the % distribution of Male and Female per US State
 #-----------------------------------------------------------
 gender_state <- gender_dist |> 
@@ -126,7 +130,7 @@ by_month <- by_month |>
   pivot_longer(c(DONATION, COUNT), names_to = "VARIABLE", values_to = "VALUE")
 
 by_month <- by_month |> pivot_wider(values_from = VALUE, names_from = GENDER)
-by_month <- by_month |> mutate(REL_F = F/(F+M + `NA`))
+by_month <- by_month |> mutate(REL_F = F/(F+M))
 
 
 ################################################################
@@ -248,7 +252,7 @@ data_republicans <- data_republicans |>
 plot_republicans <- plot_usmap(regions = c("states"),data = data_republicans)+
   scale_fill_continuous(high = "darkblue", low = "white",
                         name = "% donations by Female",
-                        limits = c(0.25, 0.4), oob=squish,
+                        limits = c(0.3, 0.4), oob=squish,
                         guide = guide_colorbar(barwidth = 1, barheight =5,
                                                label.theme = element_text(size = 10),
                                                title = element_blank()))+
