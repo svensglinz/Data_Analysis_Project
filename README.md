@@ -15,7 +15,7 @@ Data which was used in this code and which should be part of the folder "files" 
 - files/donations_uncleaned: https://1drv.ms/u/s!AoQRAZtdS9u4iO0U5SfM1cjIEUXqJw?e=4FRLhl
 - files/donations_cleaned: https://1drv.ms/u/s!AoQRAZtdS9u4iOxrV4k47dMJ_3K1Cw?e=DyNgzg
 - files/donations (folder): https://1drv.ms/u/s!AoQRAZtdS9u4iOs7Naisf9bOOFRXIw?e=JD9a1C
-
+--> The files in the donations folder are the result of a split of the original text file that was downloaded from XX (>16GB). We split the file into smaller text files with 1 Mio lines each with the git bash command split *donations.txt -l 1000000*
 
 ## Output Examples
 
