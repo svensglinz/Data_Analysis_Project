@@ -42,14 +42,14 @@ summary_table <- donations_grouped |>
 
 summary_table$Gender[is.na(summary_table$Gender)] <- "NA"
 
-#get summary table which also shows data from those where gender could not 
-#be identified. NA is excluded in all further analysis!
+#round values and export table as HTML file
 summary_table[3:5] <- data.frame(sapply(summary_table[3:5], function(x) round(x, 0)))
 stargazer(summary_table, out = "plots/summary_table.html", summary = FALSE, rownames = FALSE)
 
-#exclude gender NA 
+#exclude gender NA for further analysis
 donations <- donations |> filter(!is.na(GENDER))
 donations_grouped <- donations_grouped |> filter(!is.na(GENDER))
+
 #data frame which shows the % distribution of Male and Female per US State
 #-----------------------------------------------------------
 gender_state <- gender_dist |> 
@@ -107,7 +107,7 @@ by_gender_state_rel <- by_gender_state |>
   left_join(by_variable_state, by = c("VARIABLE", "CANDIDATE", "STATE")) |> 
   mutate(REL_GENDER = VALUE/SUM)
 
-#plot which adds the relative occurrence of male/female in each us state
+#add the relative occurrence of male/female in each us state
 #as well as information on the political ideology
 #-----------------------------------------------------------
 by_gender_state_rel_pol <- by_gender_state_rel |>
@@ -138,7 +138,8 @@ by_month <- by_month |> mutate(REL_F = F/(F+M))
 ################################################################
 
 #plot which shows the relative count and amount women donated for Trump and Biden
-rel_share_plot <- by_gender_rel |> filter(GENDER == "F") |> 
+rel_share_plot <- by_gender_rel |>
+  filter(GENDER == "F") |> 
   ggplot(aes(x =  CANDIDATE, fill =  VARIABLE))+
   geom_bar(aes(y =REL_GENDER), stat = "identity", position = position_dodge())+
   labs(title = "Relative Female Donations",
@@ -150,8 +151,10 @@ rel_share_plot <- by_gender_rel |> filter(GENDER == "F") |>
   theme(axis.title.y = element_blank(),
         axis.title.x = element_blank(),
         legend.position = "bottom",
-      plot.title = element_text(family = "sans", size = 16,
-                                margin=margin(0,0,30,0), hjust = 0.5))+
+        plot.title = element_text(family = "sans",
+                                  size = 16,
+                                  margin=margin(0,0,30,0),
+                                  hjust = 0.5))+
   scale_fill_discrete(labels = c("Number of Donors", "Value of Donations"))
 
 #save output
@@ -185,21 +188,34 @@ evolution_female_donations <- by_month |>
         legend.position = "bottom",
         legend.text = element_text(size=10),
         legend.key.size = unit(0.2, 'cm'),
-        plot.title = element_text(family = "sans", size = 16,
-                                  margin=margin(0,0,15,0), hjust = 0.5),
+        plot.title = element_text(family = "sans",
+                                  size = 16,
+                                  margin=margin(0,0,15,0),
+                                  hjust = 0.5),
         axis.title.y.right =  element_text(angle = 270, vjust = 4),
         axis.title.x = element_blank())+
-  scale_x_date(breaks = "2 month", date_labels = "%b- %y")+
+  scale_x_date(breaks = "2 month",
+               date_labels = "%b- %y")+
   annotate(
-    geom = "curve", x = as.Date("2020-05-10", "%Y-%m-%d"),
-    y = 0.25, xend = as.Date("2020-08-01", "%Y-%m-%d"), yend = 0.3, 
-    curvature = .3, arrow = arrow(length = unit(2, "mm")))+
-  annotate(geom = "text", x = as.Date("2020-05-10", "%Y-%m-%d"),
-           y = 0.25, label = "Kamala Harris as VP", hjust = "right")+
-  annotate("rect", fill = "grey", alpha = 0.5,
+    geom = "curve",
+    x = as.Date("2020-05-10", "%Y-%m-%d"),
+    y = 0.25,
+    xend = as.Date("2020-08-01", "%Y-%m-%d"),
+    yend = 0.3, 
+    curvature = .3,
+    arrow = arrow(length = unit(2, "mm")))+
+  annotate(geom = "text",
+           x = as.Date("2020-05-10", "%Y-%m-%d"),
+           y = 0.25,
+           label = "Kamala Harris as VP",
+           hjust = "right")+
+  annotate("rect",
+           fill = "grey",
+           alpha = 0.5,
           xmin = as.Date("2020-07-15", "%Y-%m-%d"), 
           xmax = as.Date("2020-08-15", "%Y-%m-%d"),
-          ymin = 0, ymax = Inf)+
+          ymin = 0,
+          ymax = Inf)+
   labs(caption = "November only until Election Day (3. Nov)")
   
 #save plot 
@@ -214,11 +230,13 @@ ggsave(filename = "plots/evolution_female_donation.png",
 
 #take only female and count variable 
 temp_count <- by_gender_state_rel_pol |> 
-  filter(GENDER == "F" & VARIABLE == "COUNT") |>  drop_na()
+  filter(GENDER == "F" & VARIABLE == "COUNT") |>
+  drop_na()
 
 #take only female and donations variable 
 temp_donation <- by_gender_state_rel_pol |> 
-  filter(GENDER == "F" & VARIABLE == "DONATION") |>  drop_na()
+  filter(GENDER == "F" & VARIABLE == "DONATION") |> 
+  drop_na()
 
 #run two regression specifications (once rel-share by donation, once by number of donors)
 reg_0_0 <-  lm(REL_GENDER ~ RATIO + CANDIDATE, data = temp_count)
@@ -249,7 +267,8 @@ data_republicans <- data_republicans |>
   select(STATE, REL_GENDER) |>
   rename(values = REL_GENDER, state = STATE)
 
-plot_republicans <- plot_usmap(regions = c("states"),data = data_republicans)+
+plot_republicans <- plot_usmap(regions = c("states"),
+                               data = data_republicans)+
   scale_fill_continuous(high = "darkblue", low = "white",
                         name = "% donations by Female",
                         limits = c(0.3, 0.4), oob=squish,
@@ -313,8 +332,11 @@ ggsave(plot_democrats, device = "png", filename = "plots/plot_democrats.png", wi
 ################################################################
 
 inhabitants_vs_female <- ggplot(by_gender_state_rel_pol |> 
-                                     filter(GENDER == "F", VARIABLE == "COUNT") |> drop_na(), 
-                                   aes(x = Conservative, y = REL_GENDER/RATIO , color = CANDIDATE))+
+                                     filter(GENDER == "F", VARIABLE == "COUNT")
+                                |> drop_na(), 
+                                   aes(x = Conservative,
+                                       y = REL_GENDER/RATIO,
+                                       color = CANDIDATE))+
                               geom_point(size = 1)+
   scale_x_continuous(labels = scales::percent)+
                               geom_smooth(method = "lm", size = 0.5)+
@@ -324,7 +346,8 @@ inhabitants_vs_female <- ggplot(by_gender_state_rel_pol |>
       title = "Pop. Adj. %Female Donors vs. Conservativeness",
       color = "")+
   theme(axis.text.x = element_text(vjust = 0.5),
-        plot.title = element_text(family = "sans", size = 16,
+        plot.title = element_text(family = "sans",
+                                  size = 16,
                                   margin=margin(0,0,15,0)),
         axis.title.y = element_text(vjust = 3),
         legend.text = element_text(size = 10),
@@ -413,10 +436,18 @@ donations_trump <- cbind(donations_trump, cumdonations_trump["cumdonations"])
 
 
 cum_donations <- ggplot()+
-  geom_line(data = donations_biden, aes(x = TRANSACTION_DT,
-                                        y = cumdonations, color = GENDER, linetype = "Biden"), size =0.8)+
-  geom_line(data = donations_trump, aes(x = TRANSACTION_DT,
-                                        y = cumdonations, color = GENDER, linetype = "Trump"), size = 0.8)+
+  geom_line(data = donations_biden,
+            aes(x = TRANSACTION_DT,
+                y = cumdonations,
+                color = GENDER,
+                linetype = "Biden"),
+            size =0.8)+
+  geom_line(data = donations_trump,
+            aes(x = TRANSACTION_DT,
+                    y = cumdonations,
+                color = GENDER,
+                linetype = "Trump"),
+            size = 0.8)+
   labs(linetype = "", color = "", 
        x = "Date", 
        y = "Cumulative Donations", 
@@ -427,13 +458,18 @@ cum_donations <- ggplot()+
            xmin = as.Date("2020-08-08", "%Y-%m-%d"), 
            xmax = as.Date("2020-08-14", "%Y-%m-%d"),
            ymin = -Inf, ymax = Inf)+
-  annotate(
-    geom = "curve", x = as.Date("2020-05-10", "%Y-%m-%d"), y = 170*10^6,
-    xend = as.Date("2020-08-10", "%Y-%m-%d"), yend = 150*10^6, 
-    curvature = .3, arrow = arrow(length = unit(2, "mm"))
-  )+
-  annotate(geom = "text", x = as.Date("2020-05-10", "%Y-%m-%d"),
-           y = 170*10^6, label = "Kamala Harris as VP", hjust = "right")+
+  annotate(geom = "curve",
+           x = as.Date("2020-05-10", "%Y-%m-%d"),
+           y = 170*10^6,
+           xend = as.Date("2020-08-10", "%Y-%m-%d"),
+           yend = 150*10^6, 
+           curvature = .3,
+           arrow = arrow(length = unit(2, "mm")))+
+  annotate(geom = "text",
+           x = as.Date("2020-05-10", "%Y-%m-%d"),
+           y = 170*10^6,
+           label = "Kamala Harris as VP",
+           hjust = "right")+
   theme_economist()+
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5),
         legend.position = "bottom",

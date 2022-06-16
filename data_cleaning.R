@@ -122,18 +122,23 @@ donation_files <- donation_files[!donation_files == "header_file.csv"]
 #loop through all donation files, filter out donations for Biden & Trump 
 #& paste together
 
+#the ID Number for the Election Committees for Trump and Biden
+#C00703975 = BIDEN, C00580100 = TRUMP have been obtained from OpenSecrets.org)
+
+#!Warning: This loop can take a long time to run!
 for (i in donation_files){
   
   temp <- read_delim(paste0("files/donations/", i), col_names = F)
   
-  #filter out only donations which were made to Biden and Trump Fundraising Committee
+  #filter out only donations which were made by INDIVIDUALS (people not corporates)
+  #to Biden and Trump Fundraising Committee
   biden_trump <-temp |> 
     filter(X16 %in% c("C00703975", "C00580100") & X7 == "IND")
   donations <- bind_rows(donations, biden_trump)
   
 }
 
-#import file provided by the FEC which contains the column names
+#import file provided by the FEC which contains the column names/headers
 col_names_donations <- read_csv("files/donations/header_file.csv", col_names = F)
 colnames(donations) <- col_names_donations[1,]
 
@@ -153,7 +158,7 @@ last_name <- gsub(pattern = "[[:punct:]]", replacement = "", last_name)
 #first name = all characters after first comma
 first_name <-  str_split(names, pattern = ",", simplify = T)[,2]
 
-#split by non alpanum- characters and select longest string as first name 
+#split by non alphanum- characters and select longest string as first name 
 first_name <- sapply(str_split(first_name, "[^[:alpha:]]"), function(x) x[which.max(nchar(x))])
 
 #paste name to new donation data frame columns
@@ -161,16 +166,23 @@ donations$LAST_NAME <- last_name
 donations$FIRST_NAME <- first_name
 donations$CANDIDATE <- ifelse(donations$OTHER_ID == "C00703975", "BIDEN", "TRUMP")
 
-#selct only relevant columns, filter out non-valid states, format date & join gender information
+#select only relevant columns, filter out non-valid states, format date & join gender information
 donations <- donations |> 
-  select(c(FIRST_NAME, LAST_NAME, TRANSACTION_AMT, CITY, STATE, ZIP_CODE, EMPLOYER, OCCUPATION, TRANSACTION_DT, CANDIDATE))
+  select(c(FIRST_NAME, LAST_NAME,
+           TRANSACTION_AMT, CITY, STATE,
+           ZIP_CODE, EMPLOYER, OCCUPATION,
+           TRANSACTION_DT, CANDIDATE))
 
-donations <- donations |>  relocate(FIRST_NAME, LAST_NAME, TRANSACTION_DT, TRANSACTION_AMT)
+donations <- donations |> 
+  relocate(FIRST_NAME, LAST_NAME, TRANSACTION_DT, TRANSACTION_AMT)
 
 donations <- left_join(donations, names_df[,c("NAME", "GENDER")], by = c("FIRST_NAME" = "NAME"))
-donations <- donations |>  relocate(FIRST_NAME, LAST_NAME, GENDER)
-donations <- donations |>  mutate(TRANSACTION_DT = as.Date(TRANSACTION_DT, format = "%m%d%Y"))
-donations <- donations |> mutate(STATE = ifelse(STATE %in% states_df$ABBREVIATION, STATE, NA))
+donations <- donations |> 
+  relocate(FIRST_NAME, LAST_NAME, GENDER)
+donations <- donations |> 
+  mutate(TRANSACTION_DT = as.Date(TRANSACTION_DT, format = "%m%d%Y"))
+donations <- donations |>
+  mutate(STATE = ifelse(STATE %in% states_df$ABBREVIATION, STATE, NA))
 
 #store data frames for further analysis
 write_csv(donations, "files/donations_cleaned.csv")
