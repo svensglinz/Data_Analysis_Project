@@ -5,7 +5,7 @@ This project was done as part of a group project for the Course Big Data for Soc
 We look at gender related aspects in donations to the presidential Candidate Committees of Donald Trump and Joe Biden in the 2020 Presidential Election. 
 We put a focus on the share of donations as well as the share of donors which are women. 
 
-For a detailed description of our results and methodology please have a look at our [Paper](Data Analysis Paper.pdf)
+For a detailed description of our results and methodology please have a look at our [Paper](https://github.com/svensglinz/Data_Analysis_Project/blob/main/Data%20Analysis%20Project%20Paper.pdf)
 
 ## Data 
 
